@@ -3,53 +3,373 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AN NHIEN BEAUTY - Quản Lý</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>AN NHIEN BEAUTY - Quản Lý Tích Điểm & Nhân Viên</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
+<body class="bg-[#FFF8FA] min-h-screen text-gray-800 pb-24">
 
-    <!-- Cấu hình hệ thống -->
-    <script>
-        // Đường dẫn Google Apps Script của bạn đã được tích hợp sẵn
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWnxjLiFqYoYGWjW4lVG92P8vC5PIu_IlcBdi2YKGYesCOZSwjssLTHVycXzJ8Yeh69Q/exec";
-        const STAFF_PIN = "3979"; // Mã PIN đăng nhập
-    </script>
-
-    <!-- Nội dung chính -->
-    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
-        <header class="bg-pink-500 p-6 text-white text-center">
-            <h1 class="text-xl font-bold">AN NHIEN BEAUTY</h1>
-            <p class="text-sm opacity-80">Quản lý tích điểm khách hàng</p>
-        </header>
-
-        <div class="p-6">
-            <div id="status" class="text-center text-sm text-gray-500 mb-4">Đang kết nối với hệ thống...</div>
-            <div id="content" class="space-y-4">
-                <!-- Danh sách khách hàng sẽ hiển thị ở đây -->
+    <!-- MÀN HÌNH ĐĂNG NHẬP NHÂN VIÊN -->
+    <div id="loginScreen" class="fixed inset-0 bg-[#FFF0F3] z-50 flex items-center justify-center p-4">
+        <div class="bg-white/95 backdrop-blur-md w-full max-w-sm rounded-3xl p-7 shadow-2xl border border-pink-100 text-center">
+            <div class="w-16 h-16 bg-gradient-to-tr from-pink-500 to-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white text-2xl shadow-md shadow-pink-200">
+                <i class="fa-solid fa-lock"></i>
             </div>
+            <h2 class="text-xl font-bold text-gray-900 mb-1">AN NHIEN BEAUTY</h2>
+            <p class="text-xs text-pink-500 mb-6 font-medium">Nhập mã PIN nội bộ để tiếp tục</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 mb-1 tracking-wider">TÊN NHÂN VIÊN THỰC HIỆN</label>
+                    <input type="text" id="loginUser" required placeholder="Nhập tên của bạn..." class="w-full px-4 py-3 bg-pink-50/50 border border-pink-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm">
+                </div>
+                <div>
+                    <label class="block text-[11px] font-bold text-gray-400 mb-1 tracking-wider">MÃ PIN BẢO MẬT</label>
+                    <input type="password" maxlength="4" id="loginPin" required placeholder="••••" class="w-full px-4 py-3 bg-pink-50/50 border border-pink-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm tracking-widest text-center font-bold">
+                </div>
+                <div id="loginError" class="text-rose-500 text-xs font-medium text-center hidden">
+                    Mã PIN không chính xác! Vui lòng thử lại.
+                </div>
+                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold rounded-2xl shadow-lg shadow-pink-200 hover:opacity-95 transition active:scale-98 text-sm cursor-pointer">
+                    Mở Khóa Hệ Thống <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </form>
         </div>
     </div>
 
+    <!-- ỨNG DỤNG CHÍNH -->
+    <div id="mainApp" class="max-w-md mx-auto min-h-screen bg-white shadow-xl flex flex-col justify-between hidden relative">
+        <header class="bg-gradient-to-r from-pink-500 to-rose-400 text-white p-4 sticky top-0 z-20 shadow-md">
+            <div class="flex justify-between items-center mb-3">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-white">
+                        <i class="fa-solid fa-spa text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base font-bold tracking-wide">AN NHIEN BEAUTY</h1>
+                        <p class="text-[11px] text-pink-100 font-medium" id="managerInfo">Đang tải...</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="syncDataFromCloud()" class="bg-white/20 hover:bg-white/30 text-white p-2 rounded-xl text-xs transition cursor-pointer" title="Đồng bộ dữ liệu">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    <button onclick="openModal('customerModal')" class="bg-white text-pink-600 px-3 py-2 rounded-2xl font-bold text-xs shadow-md hover:bg-pink-50 transition active:scale-95 flex items-center space-x-1 cursor-pointer">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Thêm Khách</span>
+                    </button>
+                    <button onclick="logout()" class="text-white/80 hover:text-white p-2 text-xs cursor-pointer" title="Khóa ứng dụng">
+                        <i class="fa-solid fa-lock text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-white/10 backdrop-blur rounded-2xl p-2.5 border border-white/20 text-center">
+                <div>
+                    <span class="block text-[10px] text-pink-100 uppercase font-bold">Tổng Khách Hàng</span>
+                    <span id="statTotalCust" class="text-base font-bold">0</span>
+                </div>
+                <div class="border-l border-white/20">
+                    <span class="block text-[10px] text-pink-100 uppercase font-bold">Khách VIP (>3Tr)</span>
+                    <span id="statVipCust" class="text-base font-bold text-yellow-200">0</span>
+                </div>
+            </div>
+            
+            <div class="mt-3 relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-pink-300">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="searchInput" oninput="filterCustomers()" placeholder="Tìm tên hoặc SĐT khách hàng..." class="w-full pl-9 pr-4 py-2 bg-white/20 backdrop-blur placeholder-pink-200 text-white text-xs rounded-xl focus:outline-none focus:bg-white focus:text-gray-800 transition">
+            </div>
+        </header>
+
+        <main class="p-4 flex-grow overflow-y-auto mb-16">
+            <div id="customerList" class="space-y-3.5"></div>
+            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-16 text-center text-gray-300">
+                <p class="text-sm font-semibold text-gray-500">Không tìm thấy khách hàng nào</p>
+            </div>
+        </main>
+
+        <!-- Modal Thêm Khách -->
+        <div id="customerModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-base font-bold text-gray-800">Thêm Khách Hàng Mới</h3>
+                    <button onclick="closeModal('customerModal')" class="text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="customerForm" onsubmit="addCustomer(event)" class="space-y-3.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">TÊN KHÁCH HÀNG *</label>
+                        <input type="text" id="custName" required placeholder="Ví dụ: Chị Lan Anh" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">SỐ ĐIỆN THOẠI *</label>
+                        <input type="tel" id="custPhone" required placeholder="0912345678" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-500 mb-1">SỐ TIỀN (VNĐ)</label>
+                            <input type="number" id="custAmount" placeholder="350000" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-500 mb-1">KIỂU MI / GHI CHÚ</label>
+                            <input type="text" id="custNote" placeholder="Mi Katun cong C" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold rounded-xl shadow-lg cursor-pointer text-sm mt-2">
+                        Tạo Thẻ & Ghi Nhận Nhân Viên
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Check-in -->
+        <div id="checkinModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-base font-bold text-gray-800">Check-in Lịch Làm Mới</h3>
+                    <button onclick="closeModal('checkinModal')" class="text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <p id="checkinCustInfo" class="text-xs text-pink-600 font-semibold mb-4 bg-pink-50 p-2.5 rounded-xl border border-pink-100"></p>
+                <form id="checkinForm" onsubmit="submitCheckin(event)" class="space-y-3.5">
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">SỐ TIỀN DỊCH VỤ (VNĐ) *</label>
+                        <input type="number" id="checkinAmount" required placeholder="400000" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-gray-500 mb-1">GHI CHÚ / KIỂU MI</label>
+                        <input type="text" id="checkinNote" placeholder="Dặm mi..." class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold rounded-xl shadow-lg cursor-pointer text-sm mt-2">
+                        Xác Nhận Check-in & Lưu Tên Nhân Viên
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Chi Tiết Lịch Sử -->
+        <div id="detailModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl max-h-[85vh] flex flex-col">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 id="detTitle" class="text-base font-bold text-gray-800">Chi Tiết Thẻ</h3>
+                    <button onclick="closeModal('detailModal')" class="text-gray-400 hover:text-gray-600 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="detSummary" class="bg-pink-50/60 p-3 rounded-2xl mb-3 text-xs space-y-1.5 border border-pink-100"></div>
+                <h4 class="text-[11px] font-bold uppercase tracking-wider text-pink-500 mb-2">Lịch Sử & Nhân Viên Thực Hiện</h4>
+                <div id="detHistory" class="space-y-2 overflow-y-auto flex-grow pr-1"></div>
+                <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                    <button type="button" onclick="deleteCurrentCustomer()" class="text-red-500 text-xs font-semibold p-2.5 bg-red-50 rounded-xl cursor-pointer">Xóa Khách</button>
+                    <button onclick="closeModal('detailModal')" class="px-4 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-xl cursor-pointer">Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-4 py-2.5 rounded-full text-xs font-medium shadow-xl opacity-0 transition-all pointer-events-none z-50">Thành công</div>
+    </div>
+
     <script>
-        // Hàm cơ bản để giao tiếp với Google Sheets
-        async function syncData() {
-            const statusEl = document.getElementById('status');
-            try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // Cần thiết để gọi sang Google Scripts
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'getData' })
-                });
-                statusEl.innerText = "Đã kết nối thành công tới Google Sheets!";
-            } catch (error) {
-                statusEl.innerText = "Lỗi kết nối: " + error.message;
+        const STAFF_PIN = "3979";
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWnxjLiFqYoYGWjW4lVG92P8vC5PIu_IlcBdi2YKGYesCOZSwjssLTHVycXzJ8Yeh69Q/exec";
+
+        let currentUser = JSON.parse(localStorage.getItem('annhien_user_v10')) || null;
+        let activeCustomerId = null;
+        let customers = [];
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const staffName = document.getElementById('loginUser').value.trim();
+            const pinInput = document.getElementById('loginPin').value.trim();
+            if (pinInput !== STAFF_PIN) {
+                document.getElementById('loginError').classList.remove('hidden');
+                return;
+            }
+            currentUser = { name: staffName };
+            localStorage.setItem('annhien_user_v10', JSON.stringify(currentUser));
+            checkLoginState();
+            showToast(`Chào mừng nhân viên ${staffName}!`);
+        }
+
+        function logout() {
+            if (confirm("Bạn có muốn khóa hệ thống không?")) {
+                localStorage.removeItem('annhien_user_v10');
+                currentUser = null;
+                checkLoginState();
+                showToast("Đã khóa hệ thống.");
             }
         }
 
-        // Tự động chạy khi mở trang
-        window.onload = syncData;
+        function checkLoginState() {
+            if (currentUser) {
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('managerInfo').innerText = `Nhân viên: ${currentUser.name}`;
+                syncDataFromCloud();
+            } else {
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('mainApp').classList.add('hidden');
+            }
+        }
+
+        async function syncDataFromCloud() {
+            showToast("Đang đồng bộ dữ liệu...");
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'getData' }) });
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    customers = data;
+                    localStorage.setItem('annhien_customers_v10', JSON.stringify(customers));
+                    renderCustomers();
+                    showToast("Đồng bộ thành công!");
+                }
+            } catch (err) {
+                customers = JSON.parse(localStorage.getItem('annhien_customers_v10')) || [];
+                renderCustomers();
+                showToast("Đang dùng dữ liệu lưu tạm.");
+            }
+        }
+
+        async function saveToCloudAndStorage() {
+            localStorage.setItem('annhien_customers_v10', JSON.stringify(customers));
+            renderCustomers();
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'saveData', customers: customers })
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => toast.classList.add('opacity-0'), 2000);
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function formatCurrency(n) { return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n); }
+
+        function renderCustomers(filter = '') {
+            const listEl = document.getElementById('customerList');
+            const filtered = customers.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()) || (c.phone && String(c.phone).includes(filter)));
+            
+            document.getElementById('statTotalCust').innerText = customers.length;
+            document.getElementById('statVipCust').innerText = customers.filter(c => Number(c.totalSpent) > 3000000).length;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = '';
+                document.getElementById('emptyState').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('emptyState').classList.add('hidden');
+
+            listEl.innerHTML = filtered.map(c => {
+                const visits = Number(c.visits) || 0;
+                const isVip = Number(c.totalSpent) > 3000000;
+                return `
+                    <div class="bg-white border ${isVip ? 'border-yellow-300' : 'border-pink-100'} rounded-3xl p-4 shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <div onclick="openDetail(${c.id})" class="cursor-pointer flex-grow">
+                                <h3 class="font-bold text-gray-900">${c.name} ${isVip ? '👑 VIP' : ''}</h3>
+                                <p class="text-xs text-gray-400">SĐT: ${c.phone || 'Không có'} | Ghé: ${visits} lần</p>
+                            </div>
+                            <button onclick="openCheckin(${c.id})" class="bg-pink-500 text-white text-xs px-3 py-2 rounded-2xl font-bold cursor-pointer">Check-in</button>
+                        </div>
+                        <div onclick="openDetail(${c.id})" class="cursor-pointer pt-2 border-t border-gray-100 flex justify-between text-xs">
+                            <span class="text-pink-600 font-bold">Tổng: ${formatCurrency(c.totalSpent)}</span>
+                            <span class="text-gray-400">Gần nhất: ${c.lastVisitDate || ''}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterCustomers() { renderCustomers(document.getElementById('searchInput').value); }
+
+        function addCustomer(e) {
+            e.preventDefault();
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const amount = parseFloat(document.getElementById('custAmount').value) || 0;
+            const note = document.getElementById('custNote').value.trim() || 'Nối mới';
+            const staff = currentUser ? currentUser.name : "Quản lý";
+            const date = new Date().toLocaleDateString('vi-VN');
+
+            customers.unshift({
+                id: Date.now(), name, phone, visits: 1, totalSpent: amount, lastNote: note, lastVisitDate: date,
+                history: [{ date, amount, note, staff }]
+            });
+            saveToCloudAndStorage();
+            closeModal('customerModal');
+            document.getElementById('customerForm').reset();
+            showToast(`Thêm khách thành công bởi ${staff}!`);
+        }
+
+        function openCheckin(id) {
+            activeCustomerId = id;
+            const c = customers.find(x => x.id === id);
+            document.getElementById('checkinCustInfo').innerHTML = `Khách: <b>${c.name}</b> (Lần thứ ${c.visits})<br>Nhân viên thực hiện: <span class="text-rose-500 font-bold">${currentUser ? currentUser.name : ''}</span>`;
+            document.getElementById('checkinAmount').value = '';
+            document.getElementById('checkinNote').value = '';
+            openModal('checkinModal');
+        }
+
+        function submitCheckin(e) {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('checkinAmount').value) || 0;
+            const note = document.getElementById('checkinNote').value.trim() || 'Dặm mi';
+            const staff = currentUser ? currentUser.name : "Nhân viên";
+            const date = new Date().toLocaleDateString('vi-VN');
+
+            const c = customers.find(x => x.id === activeCustomerId);
+            if (c) {
+                c.visits = Number(c.visits) + 1;
+                c.totalSpent = Number(c.totalSpent) + amount;
+                c.lastVisitDate = date;
+                c.lastNote = note + ` (NV: ${staff})`;
+                if (!Array.isArray(c.history)) c.history = [];
+                c.history.unshift({ date, amount, note, staff });
+
+                saveToCloudAndStorage();
+                closeModal('checkinModal');
+                showToast(`Check-in thành công bởi ${staff}!`);
+            }
+        }
+
+        function openDetail(id) {
+            activeCustomerId = id;
+            const c = customers.find(x => x.id === id);
+            document.getElementById('detTitle').innerText = `Chi tiết: ${c.name}`;
+            document.getElementById('detSummary').innerHTML = `SĐT: <strong>${c.phone}</strong> | Tổng chi: <strong class="text-pink-600">${formatCurrency(c.totalSpent)}</strong>`;
+            
+            document.getElementById('detHistory').innerHTML = c.history?.map(h => `
+                <div class="bg-gray-50 p-2.5 rounded-xl text-xs space-y-1 border border-gray-100">
+                    <div><b>${h.date}</b> - <span class="text-pink-600 font-bold">${formatCurrency(h.amount)}</span> (${h.note})</div>
+                    <div class="text-rose-500 font-semibold"><i class="fa-solid fa-user-tag mr-1"></i>Thực hiện bởi: ${h.staff || 'Chưa rõ'}</div>
+                </div>
+            `).join('') || '<p class="text-xs text-gray-400">Chưa có lịch sử.</p>';
+            openModal('detailModal');
+        }
+
+        function deleteCurrentCustomer() {
+            if (confirm("Xóa khách hàng này khỏi hệ thống?")) {
+                customers = customers.filter(x => x.id !== activeCustomerId);
+                saveToCloudAndStorage();
+                closeModal('detailModal');
+                showToast("Đã xóa thành công!");
+            }
+        }
+
+        checkLoginState();
     </script>
 </body>
 </html>
