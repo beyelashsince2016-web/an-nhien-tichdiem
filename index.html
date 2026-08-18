@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AN NHIEN BEAUTY - Quản Lý</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+
+    <!-- Cấu hình hệ thống -->
+    <script>
+        // Đường dẫn Google Apps Script của bạn đã được tích hợp sẵn
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzWnxjLiFqYoYGWjW4lVG92P8vC5PIu_IlcBdi2YKGYesCOZSwjssLTHVycXzJ8Yeh69Q/exec";
+        const STAFF_PIN = "3979"; // Mã PIN đăng nhập
+    </script>
+
+    <!-- Nội dung chính -->
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-lg">
+        <header class="bg-pink-500 p-6 text-white text-center">
+            <h1 class="text-xl font-bold">AN NHIEN BEAUTY</h1>
+            <p class="text-sm opacity-80">Quản lý tích điểm khách hàng</p>
+        </header>
+
+        <div class="p-6">
+            <div id="status" class="text-center text-sm text-gray-500 mb-4">Đang kết nối với hệ thống...</div>
+            <div id="content" class="space-y-4">
+                <!-- Danh sách khách hàng sẽ hiển thị ở đây -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Hàm cơ bản để giao tiếp với Google Sheets
+        async function syncData() {
+            const statusEl = document.getElementById('status');
+            try {
+                const response = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Cần thiết để gọi sang Google Scripts
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'getData' })
+                });
+                statusEl.innerText = "Đã kết nối thành công tới Google Sheets!";
+            } catch (error) {
+                statusEl.innerText = "Lỗi kết nối: " + error.message;
+            }
+        }
+
+        // Tự động chạy khi mở trang
+        window.onload = syncData;
+    </script>
+</body>
+</html>
